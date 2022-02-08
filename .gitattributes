@@ -1,2 +1,336 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+@echo off
+cls
+::----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+REM Info
+echo Windows 10 Security Script.
+echo Developed by Kaveh Kooshk - University of Siegen, Department of Experimental Particle Physics.
+echo Disclaimar: This app is devoloped solely for Windows 10 Pro and Edu systems.
+echo Disclaimar: Private use requires no permission.
+
+::----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+REM Gain Access to Elevated CMD:
+:checkPrivileges
+NET FILE 1>NUL 2>NUL
+if '%errorlevel%' == '0' ( goto gotPrivileges ) else ( goto getPrivileges )
+:getPrivileges
+if '%1'=='ELEV' (echo ELEV & shift /1 & goto gotPrivileges)
+
+setlocal DisableDelayedExpansion
+set "batchPath=%~0"
+setlocal EnableDelayedExpansion
+ECHO Set UAC = CreateObject^("Shell.Application"^) > "%temp%\OEgetPrivileges.vbs"
+ECHO args = "ELEV " >> "%temp%\OEgetPrivileges.vbs"
+ECHO For Each strArg in WScript.Arguments >> "%temp%\OEgetPrivileges.vbs"
+ECHO args = args ^& strArg ^& " "  >> "%temp%\OEgetPrivileges.vbs"
+ECHO Next >> "%temp%\OEgetPrivileges.vbs"
+ECHO UAC.ShellExecute "!batchPath!", args, "", "runas", 1 >> "%temp%\OEgetPrivileges.vbs"
+"%SystemRoot%\System32\WScript.exe" "%temp%\OEgetPrivileges.vbs" %*
+exit /B
+
+:gotPrivileges
+if '%1'=='ELEV' shift /1
+setlocal & pushd .
+cd /d %~dp0
+
+REM Move to system directory
+cd c:\windows\system32
+
+::----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+REM App Settings
+
+	REM Disable Installation and Update of Window's Junk Apps in the Future
+			REM		0x00000001: Enable		0x00000000: Disable
+			reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SilentInstalledAppsEnabled" /t "REG_DWORD" /d "0x00000000" /f 1>>NUL
+			echo Future Junk App Installation/Update Disabled.
+			echo Warning: You still need to uninstall the existing Apps.
+			echo .
+			
+::----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+REM Privacy settings
+
+
+	REM General Settings:
+	
+		REM Disable "Let apps use advertising ID to make ads more interesting to you based on your app activity (Turning this off will reset your ID.)"
+			REM		0x00000001: disable		0x00000000: enable
+			reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo" /v "DisabledByGroupPolicy" /t "REG_DWORD" /d "0x00000001" /f 1>>NUL
+			echo Advertising ID Disabled.
+			echo .
+			
+		REM Disable "Let websites provide locally relevant content by accessing my language list"
+			REM		0x00000001: disable		0x00000000: enable
+			reg add "HKCU\Control Panel\International\User Profile" /v "HttpAcceptLanguageOptOut" /t "REG_DWORD" /d "0x00000001" /f 1>>NUL
+			echo Access to Language list is blocked.
+			echo .
+			
+		REM Disable "Let Windows track app launches to improve Start and search results"
+			REM		0x00000001: disable		0x00000000: enable
+			reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "Start_TrackProgs" /t "REG_DWORD" /d "0x00000000" /f 1>>NUL
+			echo App launch track is blocked.
+			echo .
+			
+		REM Disable "Show me Suggested Content in the Settings App"
+			REM		0x00000001: enable		0x00000000: disable
+			reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SubscribedContent-338393Enabled" /t "REG_DWORD" /d "0x00000000" /f 1>>NUL 2>>&1
+			reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SubscribedContent-353694Enabled" /t "REG_DWORD" /d "0x00000000" /f 1>>NUL 2>>&1
+			reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SubscribedContent-353696Enabled" /t "REG_DWORD" /d "0x00000000" /f 1>>NUL 2>>&1
+			echo Suggested Content in Apps is disabled.
+			echo .			
+			
+			
+	REM Diagnostics and Feedback:
+
+		REM Set "Diagnostic Data" to Basic, instead of Full
+			REM		0x00000001: Basic		0x00000003: Full
+			reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v "AllowTelemetry" /t "REG_DWORD" /d "0x00000001" /f 1>>NUL
+			echo "Diagnostic Data" is to Basic, instead of Full.
+			echo .
+			
+		REM Disable Improve Inking & Typing Recognition for All Users
+			REM		0x00000001: ON		0x00000000: OFF		
+			reg add "HKCU\Software\Microsoft\Input\TIPC" /v "Enabled" /t "REG_DWORD" /d "0x00000000" /f 1>NUL
+			echo "Improve Inking & Typing Recognition" is disabled.
+			echo .
+			
+		REM Disable "Tailored Experiences based on the Diagnostic Data Setting"
+			REM		0x00000001: Enabled		0x00000000: Disabled
+			reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Privacy" /v "TailoredExperiencesWithDiagnosticDataEnabled" /t "REG_DWORD" /d "0x00000000" /f 1>NUL
+			echo "Tailored Experience" is disabled.
+			echo .
+			
+		REM Disable "Diagnostics Data Viewer"
+			REM		0x00000001: Enabled		0x00000000: Disabled
+			reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack\EventTranscriptKey" /v "EnableEventTranscript" /t "REG_DWORD" /d "0x00000000" /f 1>NUL
+			echo "Diagnostics Data Viewer" is disabled.
+			echo .
+			
+		REM Delete Personal Daignostics Data
+			sc delete DiagTrack
+			sc delete dmwappushservice
+			echo "" >> C:\ProgramData\Microsoft\Diagnosis\ETLLogs\AutoLogger\AutoLogger-Diagtrack-Listener.etl
+			echo "Personal Daignostics Data" is cleared.
+			echo .
+			
+		REM Set "Feedback Frequency" to Never
+			REM		0x00000001: Never		0x00000000: Automatically
+			reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v "DoNotShowFeedbackNotifications" /t "REG_DWORD" /d "0x00000001" /f 1>>NUL
+			echo "Feedback Frequency" is set to Never.
+			echo .
+			
+		REM Disable Telemetry
+			sc stop DiagTrack
+			sc config DiagTrack start= disabled
+			sc stop dmwappushservice
+			sc config dmwappushservice start= disabled
+			reg add HKLM\SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\AutoLogger-Diagtrack-Listener\ /v Start /t REG_DWORD /d 0 /f
+			reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection\ /v AllowTelemetry /t REG_DWORD /d 0 /f
+			reg add HKLM\SOFTWARE\Microsoft\WindowsSelfHost\UI\Visibility\ /v DiagnosticErrorText /t REG_DWORD /d 0 /f
+			reg add HKLM\SOFTWARE\Microsoft\WindowsSelfHost\UI\Strings\ /v DiagnosticErrorText /t REG_SZ /d "" /f
+			reg add HKLM\SOFTWARE\Microsoft\WindowsSelfHost\UI\Strings\ /v DiagnosticLinkText /t REG_SZ /d "" /f
+			echo "Telemetry" is disabled.
+			echo .
+
+	REM Activity History (Requires Reboot):
+		
+		REM Disable "Let windows collect my Activity History from this PC"
+			REM		0x00000001: Enabled		0x00000000: Disabled
+			reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "PublishUserActivities" /t "REG_DWORD" /d "0x00000000" /f 1>NUL
+			echo "Activity History Collection" is disabled.
+			echo .
+			
+		REM Disable "Let windows sync my Activities from this PC to the Cloud"
+			REM		0x00000001: Enabled		0x00000000: Disabled	
+			reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "EnableActivityFeed" /t "REG_DWORD" /d "0x00000000" /f 1>NUL
+			reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "UploadUserActivities" /t "REG_DWORD" /d "0x00000000" /f 1>NUL
+			echo "Activity History Sync" is disabled.
+			echo .			
+	
+	REM App Settings
+	
+		REM Disable "Location Services"
+			REM		"Deny": Disable			"Allow": Enable
+			reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location" /v "Value" /t "REG_SZ" /d "Deny" /f 1>NUL
+			echo "Location Services" are disabled.
+			echo .
+::----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+REM Taskbar Settings
+
+	REM Remove "Task View" from Taskbar
+		REM		0x00000001: Enabled		0x00000000: Disabled
+		reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "ShowTaskViewButton" /t REG_DWORD /d "0x00000000" /f
+		echo "Task View" is removed from Taskbar.
+		echo .
+		
+	REM Always show all icons in the notification area
+		REM		0x00000001: Auto		0x00000000: Always Show All 
+		reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer" /v "EnableAutoTray" /t REG_DWORD /d "0" /f
+		echo All icons will always be shown in Notification Area.
+		echo .
+			
+	REM Remove People Button from Taskbar
+		REM		0x00000001: ON		0x00000000: OFF
+		reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People" /v PeopleBand /t REG_DWORD /d "0" /f
+		echo "People" Button is removed from Taskbar.
+		echo .
+		
+::----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+REM Desktop Settings
+
+	REM Disable and Delete Microsoft Edge shortcut creation on desktop for new user profiles
+		REM OPTIONS: REG DEL the registry key to enable
+		reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer /v "DisableEdgeDesktopShortcutCreation" /t REG_DWORD /d "0x00000001" /f
+		DEL "%userprofile%\Desktop\Microsoft Edge.lnk"
+		echo "Microsoft Edge" shortcut is removed from desktop.
+		echo "Microsoft Edge" desktop shortcut will no longer be created for new users.
+		echo .
+		
+::----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+REM Explorer Settings
+	REM Hide "Recently used files" in Quick access in Windows Explorer	
+		REM OPTIONS: REG DEL values 
+		reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "Start_TrackDocs" /t "REG_DWORD" /d "0x00000000" /f 1>NUL 2>&1
+		echo "Recently used files" is removed from Quick access in Windows Explorer.
+		echo .
+
+	REM Hide "Frequently used files" in Quick access in Windows Explorer	
+		REM		0x00000001: Enable		0x00000000: Hide
+		reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer" /v "ShowFrequent" /t "REG_DWORD" /d "0x00000000" /f 1>NUL 2>&1
+		echo "Frequently used files" is removed from Quick access in Windows Explorer.
+		echo .
+::----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+REM Remove OneDrive
+
+	REM Prevent the usage of OneDrive for file storage
+		REM		0x00000001: enable		0x00000000: disable
+		REG ADD "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableFileSyncNGSC" /t "REG_DWORD" /d "0x00000000" /f 1>>NUL
+		
+	REM Uninstall OneDrive
+		set x86="%SYSTEMROOT%\System32\OneDriveSetup.exe"
+		set x64="%SYSTEMROOT%\SysWOW64\OneDriveSetup.exe"
+	
+		echo Closing OneDrive Process...
+		echo.
+		taskkill /f /im OneDrive.exe >> NUL 2>>&1
+		ping 127.0.0.1 -n 5 >> NUL 2>>&1
+		echo OneDrive Process Stopped.
+		echo .
+	
+		echo Uninstalling OneDrive...
+		echo.
+		if exist %x64% (
+		%x64% /uninstall
+		) else (
+		%x86% /uninstall
+		)
+		ping 127.0.0.1 -n 5 >> NUL 2>>&1
+		echo OneDrive Uninstalled.
+		echo .
+	
+		echo Removing OneDrive from System...
+		echo.
+		rd "%USERPROFILE%\OneDrive" /Q /S >> NUL 2>>&1
+		rd "C:\OneDriveTemp" /Q /S >> NUL 2>>&1
+		rd "%LOCALAPPDATA%\Microsoft\OneDrive" /Q /S >> NUL 2>>&1
+		rd "%PROGRAMDATA%\Microsoft OneDrive" /Q /S >> NUL 2>>&1
+		echo OneDrive Removed from System.
+		echo .
+	
+		echo Removing OneDrive from Navigation Pane...
+		echo.
+		REG DELETE "HKEY_CLASSES_ROOT\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" /f >> NUL 2>>&1
+		REG DELETE "HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" /f >> NUL 2>>&1
+		echo OneDrive Removed.
+		echo .
+		
+::----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+REM Assume Ownership
+
+	REM Add “Take Ownership” to the Right-Click Menu 	
+		REM Create a new Key inside HKCR\*\shell\ named "runas" with Value Data “Take Ownership”
+			reg add HKCR\*\shell\runas /ve /t REG_SZ /d "Take Ownership" /f
+		REM Create a new entry inside HKCR\*\shell\runas named “NoWorkingDirectory”
+			reg add HKCR\*\shell\runas /v "NoWorkingDirectory" /t REG_SZ /f
+		REM Create a new Key inside HKCR\*\shell\runas\ named "command" with a CMD Value Data
+			reg add HKCR\*\shell\runas\command /ve /d "cmd.exe /c takeown /f \"%1\" && icacls \"%1\" /grant administrators:F" /f
+		REM Create a new entry inside HKCR\*\shell\runas\command named “NoWorkingDirectory”
+			reg add HKCR\*\shell\runas\command /v "IsolatedCommand" /d "cmd.exe /c takeown /f \"%1\" && icacls \"%1\" /grant administrators:F" /f
+		echo Ownership Menu created
+		echo .
+		
+	REM Take ownership of the hosts file in "C:\Windows\System32\drivers\etc\"
+		takeown /f "C:\Windows\System32\drivers\etc\hosts"
+		
+	REM Add IP addresses to the hosts file for Rerouting Private Data
+		REM Warning: This command will destroy the previous hosts file
+		REM Warning: Windows Defender will tag this as trojan. You have to manually disable WD, remove "::" from the code, and run
+			::echo 127.0.0.1 vortex.data.microsoft.com > %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 vortex-win.data.microsoft.com >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 telecommand.telemetry.microsoft.com >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 telecommand.telemetry.microsoft.com.nsatc.net >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 oca.telemetry.microsoft.com >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 oca.telemetry.microsoft.com.nsatc.net >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 sqm.telemetry.microsoft.com >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 sqm.telemetry.microsoft.com.nsatc.net >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 watson.telemetry.microsoft.com >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 watson.telemetry.microsoft.com.nsatc.net >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 redir.metaservices.microsoft.com >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 choice.microsoft.com >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 choice.microsoft.com.nsatc.net >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 df.telemetry.microsoft.com >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 reports.wes.df.telemetry.microsoft.com >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 services.wes.df.telemetry.microsoft.com >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 sqm.df.telemetry.microsoft.com >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 telemetry.microsoft.com >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 watson.ppe.telemetry.microsoft.com >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 telemetry.appex.bing.net >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 telemetry.urs.microsoft.com >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 telemetry.appex.bing.net:443 >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 settings-sandbox.data.microsoft.com >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 vortex-sandbox.data.microsoft.com >> %WINDIR%\System32\Drivers\Etc\Hosts
+			::echo 127.0.0.1 telemetry.* >> %WINDIR%\System32\Drivers\Etc\Hosts
+::----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+REM Change Windows Auto Update Settings to Notify for Download and Auto-Install
+
+	REM Create a new Key inside HKLM\SOFTWARE\Policies\Microsoft\Windows named "WindowsUpdate"
+		reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate /f
+		
+	REM Create a new Key inside HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate named "AU"
+		reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU /f	
+	
+	REM Create a new entry inside HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU named “AUOptions” with Value Data “2”
+		REM 2: Notify for download and auto install.
+		REM 3: Auto download and notify for install.
+		REM 4: Auto download and schedule the install.
+		REM 5: Allow local admin to choose settings.
+		reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU /v AUOptions /t REG_DWORD /d 0x00000002 /f
+		
+	REM (Optional) Disable Auto-Update Completely
+		::reg add HKLM\\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU /v NoAutoUpdate /t REG_DWORD /d "0x00000001" /f 1>>NUL
+	
+	echo Windows Auto Update Settings is set to "Notify for Download and Auto-Install".
+	echo .		
+::----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+REM Restart Windows Explorer for the changes to take effect
+		REM LINK: 
+			REM OPTIONS: 
+				taskkill /f /im explorer.exe & start explorer.exe
+				cmd /K
+) ELSE (
+	echo You need to run this script with administrator priviliges...
+	cmd /K
+)
+
+::----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+::echo Please reboot for the changes to take effect.
+::pause
+
+::----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
